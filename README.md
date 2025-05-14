@@ -1,1 +1,1 @@
-# invoiceProcessor-lib
+# invoice-processor-lib
