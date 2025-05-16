@@ -4,6 +4,7 @@ import com.rucavi.invoice.processor.handlers.*;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * InvoiceProcessor is a generic class that processes invoices.
@@ -46,7 +47,15 @@ public class InvoiceProcessor<I, T> {
                             InvoiceLoadStepHandler<T> invoiceLoadStepHandler,
                             ParseRectificationStepHandler<T> parseRectificationStepHandler,
                             ParseSaveStepHandler<T> parseSaveStepHandler) {
+        Objects.requireNonNull(fileRetrievalStepHandler, "FileRetrievalStepHandler must be provided");
+        Objects.requireNonNull(invoiceParserStepHandler, "InvoiceParserStepHandler must be provided");
+        Objects.requireNonNull(parseResultValidators, "ParseResultValidators must be provided");
+        Objects.requireNonNull(invoiceLoadStepHandler, "InvoiceLoadStepHandler must be provided");
+        Objects.requireNonNull(parseRectificationStepHandler, "ParseRectificationStepHandler must be provided");
+        Objects.requireNonNull(parseSaveStepHandler, "ParseSaveStepHandler must be provided");
+
         validateConstruction(parseResultValidators, validationThreshold);
+
         this.fileRetrievalStepHandler = fileRetrievalStepHandler;
         this.invoiceParserStepHandler = invoiceParserStepHandler;
         this.parseResultValidators = parseResultValidators;
@@ -75,7 +84,15 @@ public class InvoiceProcessor<I, T> {
                             InvoiceLoadStepHandler<T> invoiceLoadStepHandler,
                             ParseRectificationStepHandler<T> parseRectificationStepHandler,
                             ParseSaveStepHandler<T> parseSaveStepHandler) {
+        Objects.requireNonNull(fileRetrievalStepHandler, "FileRetrievalStepHandler must be provided");
+        Objects.requireNonNull(invoiceParserStepHandler, "InvoiceParserStepHandler must be provided");
+        Objects.requireNonNull(parseResultValidators, "ParseResultValidators must be provided");
+        Objects.requireNonNull(invoiceLoadStepHandler, "InvoiceLoadStepHandler must be provided");
+        Objects.requireNonNull(parseRectificationStepHandler, "ParseRectificationStepHandler must be provided");
+        Objects.requireNonNull(parseSaveStepHandler, "ParseSaveStepHandler must be provided");
+
         validateConstruction(parseResultValidators, validationThreshold);
+
         this.fileRetrievalStepHandler = fileRetrievalStepHandler;
         this.invoiceParserStepHandler = invoiceParserStepHandler;
         this.parseResultValidators = parseResultValidators;
@@ -126,7 +143,7 @@ public class InvoiceProcessor<I, T> {
     }
 
     private void validateConstruction(ParseResultValidator<T>[] parseResultValidators, double validationThreshold) {
-        if (parseResultValidators == null || parseResultValidators.length == 0) {
+        if (parseResultValidators.length == 0) {
             throw new IllegalArgumentException("ParseResultValidators must be provided");
         }
 
