@@ -4,6 +4,7 @@ import com.rucavi.invoice.processor.handlers.*;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -107,14 +108,16 @@ public class InvoiceProcessor<I, T> {
      * @param input The input for file retrieval.
      */
     public void process(I input) {
-        File file = fileRetrievalStepHandler.retrieveFile(input);
-        T parsedInvoice = invoiceParserStepHandler.parseInvoice(file);
+        List<File> files = fileRetrievalStepHandler.retrieveFile(input);
+        List<T> parsedInvoices = invoiceParserStepHandler.parseInvoice(files);
 
-        if (isValidResult(parsedInvoice)) {
-            handleValidParseResult(parsedInvoice);
-        } else {
-            handleInvalidParseResult(parsedInvoice);
-        }
+        parsedInvoices.forEach(invoice -> {
+            if (isValidResult(invoice)) {
+                handleValidParseResult(invoice);
+            } else {
+                handleInvalidParseResult(invoice);
+            }
+        });
     }
 
     private void handleValidParseResult(T parsedInvoice) {
