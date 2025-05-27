@@ -7,7 +7,7 @@
 
   <groupId>com.rucavi.invoice.processor</groupId>
   <artifactId>invoice-processor-lib</artifactId>
-  <version>2.0.0</version>
+  <version>3.0.0</version>
   <packaging>jar</packaging>
 
   <name>invoiceProcessor-lib</name>

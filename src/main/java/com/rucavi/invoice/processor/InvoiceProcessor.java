@@ -20,12 +20,14 @@ import java.util.Objects;
  * @param <T> The type of the parsed invoice object.
  */
 public class InvoiceProcessor<I, T> {
+    private final InputFilterStepHandler<I> inputFilterStepHandler;
     private final FileRetrievalStepHandler<I> fileRetrievalStepHandler;
     private final InvoiceParserStepHandler<T> invoiceParserStepHandler;
     private final ParseResultValidator<T>[] parseResultValidators;
     private final InvoiceLoadStepHandler<T> invoiceLoadStepHandler;
     private final ParseRectificationStepHandler<T> parseRectificationStepHandler;
     private final ParseSaveStepHandler<T> parseSaveStepHandler;
+    private final DisposeStepHandler disposeStepHandler;
     private double validationThreshold = 1.0;
 
     /**
@@ -34,6 +36,7 @@ public class InvoiceProcessor<I, T> {
      * The parse result is considered valid if the average validation result is
      * greater than or equal to the validation threshold.
      *
+     * @param inputFilterStepHandler        The handler for input filtering.
      * @param fileRetrievalStepHandler      The handler for file retrieval.
      * @param invoiceParserStepHandler      The handler for invoice parsing.
      * @param parseResultValidators         The validators for parsed results. Cannot be empty.
@@ -42,12 +45,14 @@ public class InvoiceProcessor<I, T> {
      * @param parseRectificationStepHandler The handler for rectifying parsed invoices.
      * @param parseSaveStepHandler          The handler for saving parsed results.
      */
-    public InvoiceProcessor(FileRetrievalStepHandler<I> fileRetrievalStepHandler,
+    public InvoiceProcessor(InputFilterStepHandler<I> inputFilterStepHandler,
+                            FileRetrievalStepHandler<I> fileRetrievalStepHandler,
                             InvoiceParserStepHandler<T> invoiceParserStepHandler,
                             ParseResultValidator<T>[] parseResultValidators, double validationThreshold,
                             InvoiceLoadStepHandler<T> invoiceLoadStepHandler,
                             ParseRectificationStepHandler<T> parseRectificationStepHandler,
-                            ParseSaveStepHandler<T> parseSaveStepHandler) {
+                            ParseSaveStepHandler<T> parseSaveStepHandler,
+                            DisposeStepHandler disposeStepHandler) {
         Objects.requireNonNull(fileRetrievalStepHandler, "FileRetrievalStepHandler must be provided");
         Objects.requireNonNull(invoiceParserStepHandler, "InvoiceParserStepHandler must be provided");
         Objects.requireNonNull(parseResultValidators, "ParseResultValidators must be provided");
@@ -57,6 +62,7 @@ public class InvoiceProcessor<I, T> {
 
         validateConstruction(parseResultValidators, validationThreshold);
 
+        this.inputFilterStepHandler = inputFilterStepHandler;
         this.fileRetrievalStepHandler = fileRetrievalStepHandler;
         this.invoiceParserStepHandler = invoiceParserStepHandler;
         this.parseResultValidators = parseResultValidators;
@@ -64,6 +70,7 @@ public class InvoiceProcessor<I, T> {
         this.parseRectificationStepHandler = parseRectificationStepHandler;
         this.parseSaveStepHandler = parseSaveStepHandler;
         this.validationThreshold = validationThreshold;
+        this.disposeStepHandler = disposeStepHandler;
     }
 
     /**
@@ -72,6 +79,7 @@ public class InvoiceProcessor<I, T> {
      * The parse result is considered valid if the average validation result is
      * greater than or equal to the validation threshold.
      *
+     * @param inputFilterStepHandler        The handler for input filtering.
      * @param fileRetrievalStepHandler      The handler for file retrieval.
      * @param invoiceParserStepHandler      The handler for invoice parsing.
      * @param parseResultValidators         The validators for parsed results. Cannot be empty.
@@ -79,12 +87,14 @@ public class InvoiceProcessor<I, T> {
      * @param parseRectificationStepHandler The handler for rectifying parsed invoices.
      * @param parseSaveStepHandler          The handler for saving parsed results.
      */
-    public InvoiceProcessor(FileRetrievalStepHandler<I> fileRetrievalStepHandler,
+    public InvoiceProcessor(InputFilterStepHandler<I> inputFilterStepHandler,
+                            FileRetrievalStepHandler<I> fileRetrievalStepHandler,
                             InvoiceParserStepHandler<T> invoiceParserStepHandler,
                             ParseResultValidator<T>[] parseResultValidators,
                             InvoiceLoadStepHandler<T> invoiceLoadStepHandler,
                             ParseRectificationStepHandler<T> parseRectificationStepHandler,
-                            ParseSaveStepHandler<T> parseSaveStepHandler) {
+                            ParseSaveStepHandler<T> parseSaveStepHandler,
+                            DisposeStepHandler disposeStepHandler) {
         Objects.requireNonNull(fileRetrievalStepHandler, "FileRetrievalStepHandler must be provided");
         Objects.requireNonNull(invoiceParserStepHandler, "InvoiceParserStepHandler must be provided");
         Objects.requireNonNull(parseResultValidators, "ParseResultValidators must be provided");
@@ -94,12 +104,14 @@ public class InvoiceProcessor<I, T> {
 
         validateConstruction(parseResultValidators, validationThreshold);
 
+        this.inputFilterStepHandler = inputFilterStepHandler;
         this.fileRetrievalStepHandler = fileRetrievalStepHandler;
         this.invoiceParserStepHandler = invoiceParserStepHandler;
         this.parseResultValidators = parseResultValidators;
         this.invoiceLoadStepHandler = invoiceLoadStepHandler;
         this.parseRectificationStepHandler = parseRectificationStepHandler;
         this.parseSaveStepHandler = parseSaveStepHandler;
+        this.disposeStepHandler = disposeStepHandler;
     }
 
     /**
@@ -108,16 +120,24 @@ public class InvoiceProcessor<I, T> {
      * @param input The input for file retrieval.
      */
     public void process(I input) {
-        List<File> files = fileRetrievalStepHandler.retrieveFile(input);
-        List<T> parsedInvoices = invoiceParserStepHandler.parseInvoice(files);
+        if (inputFilterStepHandler != null && !inputFilterStepHandler.filter(input)) {
+            return;
+        }
 
-        parsedInvoices.forEach(invoice -> {
-            if (isValidResult(invoice)) {
-                handleValidParseResult(invoice);
+        List<File> files = fileRetrievalStepHandler.retrieveFile(input);
+
+        files.forEach(rawInvoice -> {
+            T parsedInvoice = invoiceParserStepHandler.parseInvoice(rawInvoice);
+            if (isValidResult(parsedInvoice)) {
+                handleValidParseResult(parsedInvoice);
             } else {
-                handleInvalidParseResult(invoice);
+                handleInvalidParseResult(rawInvoice, parsedInvoice);
             }
         });
+
+        if (disposeStepHandler != null) {
+            disposeStepHandler.dispose(files);
+        }
     }
 
     private void handleValidParseResult(T parsedInvoice) {
@@ -125,7 +145,7 @@ public class InvoiceProcessor<I, T> {
         parseSaveStepHandler.saveAndNotifySuccess(parsedInvoice);
     }
 
-    private void handleInvalidParseResult(T parsedInvoice) {
+    private void handleInvalidParseResult(File rawInvoice, T parsedInvoice) {
         boolean rectified = parseRectificationStepHandler.rectifyParsedInvoice(parsedInvoice);
 
         if (rectified && isValidResult(parsedInvoice)) {
@@ -133,7 +153,7 @@ public class InvoiceProcessor<I, T> {
             return;
         }
 
-        parseSaveStepHandler.saveAndNotifyFailure(parsedInvoice);
+        parseSaveStepHandler.saveAndNotifyFailure(rawInvoice, parsedInvoice);
     }
 
     private boolean isValidResult(T parsedInvoice) {
