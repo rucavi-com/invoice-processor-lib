@@ -1,5 +1,7 @@
 package com.rucavi.invoice.processor.handlers;
 
+import java.io.File;
+
 /**
  * Interface for saving parsed invoice data and notifying success or failure.
  *
@@ -14,9 +16,10 @@ public interface ParseSaveStepHandler<T> {
     void saveAndNotifySuccess(T parsedInvoice);
 
     /**
-     * Saves the parsed invoice data and notifies failure.
+     * Saves the raw and parsed invoice data and notifies failure.
      *
+     * @param rawInvoice The raw invoice file to save.
      * @param parsedInvoice The parsed invoice data to save.
      */
-    void saveAndNotifyFailure(T parsedInvoice);
+    void saveAndNotifyFailure(File rawInvoice, T parsedInvoice);
 }
