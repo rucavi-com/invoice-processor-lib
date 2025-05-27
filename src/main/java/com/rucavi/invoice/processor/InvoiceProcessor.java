@@ -44,6 +44,7 @@ public class InvoiceProcessor<I, T> {
      * @param invoiceLoadStepHandler        The handler for loading invoices.
      * @param parseRectificationStepHandler The handler for rectifying parsed invoices.
      * @param parseSaveStepHandler          The handler for saving parsed results.
+     * @param disposeStepHandler            The handler for disposing of files and resources.
      */
     public InvoiceProcessor(InputFilterStepHandler<I> inputFilterStepHandler,
                             FileRetrievalStepHandler<I> fileRetrievalStepHandler,
@@ -86,6 +87,7 @@ public class InvoiceProcessor<I, T> {
      * @param invoiceLoadStepHandler        The handler for loading invoices.
      * @param parseRectificationStepHandler The handler for rectifying parsed invoices.
      * @param parseSaveStepHandler          The handler for saving parsed results.
+     * @param disposeStepHandler            The handler for disposing of files and resources.
      */
     public InvoiceProcessor(InputFilterStepHandler<I> inputFilterStepHandler,
                             FileRetrievalStepHandler<I> fileRetrievalStepHandler,
