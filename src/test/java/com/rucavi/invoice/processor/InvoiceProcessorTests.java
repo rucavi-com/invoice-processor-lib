@@ -305,6 +305,20 @@ public class InvoiceProcessorTests {
 
     @Test
     @SuppressWarnings("unchecked")
+    void invoiceProcessorCanBeInstantiatedWithoutThreshold() {
+        assertDoesNotThrow(() -> new InvoiceProcessor<String, StringWrapper>(
+                filter,
+                retriever,
+                parser,
+                new ParseResultValidator[]{validator},
+                loader,
+                rectifier,
+                saver,
+                disposer));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     void whenFilterIsNull_ThenKeepProcessing() {
         // Arrange
         var invoiceProcessor = new InvoiceProcessor<String, StringWrapper>(
