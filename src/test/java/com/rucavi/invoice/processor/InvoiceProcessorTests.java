@@ -304,6 +304,37 @@ public class InvoiceProcessorTests {
     }
 
     @Test
+    void whenFirstFileFails_ThenProcessSecondFile() {
+        // Arrange
+        when(filter.filter("input")).thenReturn(true);
+        var file1 = mock(File.class);
+        var file2 = mock(File.class);
+        when(retriever.retrieveFile("input")).thenReturn(List.of(file1, file2));
+        when(parser.parseInvoice(file1)).thenThrow(new RuntimeException("boom"));
+        when(parser.parseInvoice(file2)).thenReturn(new StringWrapper("parsed"));
+        when(validator.validate(new StringWrapper("parsed"))).thenReturn(validationThreshold + 0.1);
+        doNothing().when(loader).loadInvoice(new StringWrapper("parsed"));
+
+        // Act
+        assertDoesNotThrow(() -> processor.process("input"));
+
+        // Assert
+        verify(retriever).retrieveFile("input");
+        verify(parser).parseInvoice(file1);
+        verify(saver).saveAndNotifyFailure(file1, null);
+
+        verify(parser).parseInvoice(file2);
+        verify(validator).validate(new StringWrapper("parsed"));
+        verify(loader).loadInvoice(new StringWrapper("parsed"));
+        verify(saver).saveAndNotifySuccess(new StringWrapper("parsed"));
+
+        verify(disposer).dispose(List.of(file1, file2));
+
+        verifyNoInteractions(rectifier);
+        verifyNoMoreInteractions(filter, retriever, parser, validator, loader, saver, disposer);
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void invoiceProcessorCanBeInstantiatedWithoutThreshold() {
         assertDoesNotThrow(() -> new InvoiceProcessor<String, StringWrapper>(
