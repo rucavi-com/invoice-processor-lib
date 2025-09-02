@@ -129,33 +129,40 @@ public class InvoiceProcessor<I, T> {
         List<File> files = fileRetrievalStepHandler.retrieveFile(input);
 
         files.forEach(rawInvoice -> {
-            T parsedInvoice = invoiceParserStepHandler.parseInvoice(rawInvoice);
-            if (isValidResult(parsedInvoice)) {
-                handleValidParseResult(parsedInvoice);
-            } else {
-                handleInvalidParseResult(rawInvoice, parsedInvoice);
+            T parsedInvoice = null;
+            boolean isValid = false;
+
+            try {
+                parsedInvoice = invoiceParserStepHandler.parseInvoice(rawInvoice);
+                isValid = isValidResult(parsedInvoice);
+                if (isValid) {
+                    invoiceLoadStepHandler.loadInvoice(parsedInvoice);
+                } else {
+                    boolean rectified = parseRectificationStepHandler.rectifyParsedInvoice(parsedInvoice);
+                    if (rectified && isValidResult(parsedInvoice)) {
+                        invoiceLoadStepHandler.loadInvoice(parsedInvoice);
+                        isValid = true;
+                    }
+                }
+            } catch (Exception e) {
+                parseSaveStepHandler.saveAndNotifyFailure(rawInvoice, parsedInvoice);
+                return;
+            }
+
+            try {
+                if (isValid) {
+                    parseSaveStepHandler.saveAndNotifySuccess(parsedInvoice);
+                } else {
+                    parseSaveStepHandler.saveAndNotifyFailure(rawInvoice, parsedInvoice);
+                }
+            } catch (Exception e) {
+                // Avoid failing to process the next file
             }
         });
 
         if (disposeStepHandler != null) {
             disposeStepHandler.dispose(files);
         }
-    }
-
-    private void handleValidParseResult(T parsedInvoice) {
-        invoiceLoadStepHandler.loadInvoice(parsedInvoice);
-        parseSaveStepHandler.saveAndNotifySuccess(parsedInvoice);
-    }
-
-    private void handleInvalidParseResult(File rawInvoice, T parsedInvoice) {
-        boolean rectified = parseRectificationStepHandler.rectifyParsedInvoice(parsedInvoice);
-
-        if (rectified && isValidResult(parsedInvoice)) {
-            handleValidParseResult(parsedInvoice);
-            return;
-        }
-
-        parseSaveStepHandler.saveAndNotifyFailure(rawInvoice, parsedInvoice);
     }
 
     private boolean isValidResult(T parsedInvoice) {

@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21 & cache
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build with Maven
+        run: mvn -U -B package --file pom.xml
+
+      - name: Run Coverage
+        run: mvn -B clean verify --file pom.xml
+
+      - name: JaCoCo Report
+        id: jacoco
+        uses: Madrapps/jacoco-report@v1.7.1
+        with:
+          paths: target/site/jacoco/jacoco.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 80
+          min-coverage-changed-files: 80
+          update-comment: true
+          title: "JaCoCo Coverage Report"
+          continue-on-error: false
+
+      - name: Fail PR if overall coverage is less than 80%
+        if: ${{ steps.jacoco.outputs.coverage-overall < 80.0 }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.setFailed('Overall coverage is less than 80%!')
+
+      - name: Fail PR if coverage of changed files is less than 80%
+        if: ${{ steps.jacoco.outputs.coverage-changed-files < 80.0 }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.setFailed('Coverage of changed files is less than 80%!')

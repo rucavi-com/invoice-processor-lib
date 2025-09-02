@@ -7,7 +7,7 @@
 
   <groupId>com.rucavi.invoice.processor</groupId>
   <artifactId>invoice-processor-lib</artifactId>
-  <version>3.0.0</version>
+  <version>4.0.0</version>
   <packaging>jar</packaging>
 
   <name>invoiceProcessor-lib</name>
@@ -20,6 +20,12 @@
       <version>5.9.2</version>
       <scope>test</scope>
     </dependency>
+      <dependency>
+          <groupId>org.mockito</groupId>
+          <artifactId>mockito-junit-jupiter</artifactId>
+          <version>5.19.0</version>
+          <scope>test</scope>
+      </dependency>
   </dependencies>
 
   <build>
