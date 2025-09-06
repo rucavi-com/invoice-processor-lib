@@ -28,6 +28,7 @@ public class InvoiceProcessor<I, T> {
     private final ParseRectificationStepHandler<T> parseRectificationStepHandler;
     private final ParseSaveStepHandler<T> parseSaveStepHandler;
     private final DisposeStepHandler disposeStepHandler;
+    private final FailedInvoiceBuilder<I, T> builder;
     private double validationThreshold = 1.0;
 
     /**
@@ -53,7 +54,8 @@ public class InvoiceProcessor<I, T> {
                             InvoiceLoadStepHandler<T> invoiceLoadStepHandler,
                             ParseRectificationStepHandler<T> parseRectificationStepHandler,
                             ParseSaveStepHandler<T> parseSaveStepHandler,
-                            DisposeStepHandler disposeStepHandler) {
+                            DisposeStepHandler disposeStepHandler,
+                            FailedInvoiceBuilder<I, T> builder) {
         Objects.requireNonNull(fileRetrievalStepHandler, "FileRetrievalStepHandler must be provided");
         Objects.requireNonNull(invoiceParserStepHandler, "InvoiceParserStepHandler must be provided");
         Objects.requireNonNull(parseResultValidators, "ParseResultValidators must be provided");
@@ -72,6 +74,7 @@ public class InvoiceProcessor<I, T> {
         this.parseSaveStepHandler = parseSaveStepHandler;
         this.validationThreshold = validationThreshold;
         this.disposeStepHandler = disposeStepHandler;
+        this.builder = builder;
     }
 
     /**
@@ -96,7 +99,8 @@ public class InvoiceProcessor<I, T> {
                             InvoiceLoadStepHandler<T> invoiceLoadStepHandler,
                             ParseRectificationStepHandler<T> parseRectificationStepHandler,
                             ParseSaveStepHandler<T> parseSaveStepHandler,
-                            DisposeStepHandler disposeStepHandler) {
+                            DisposeStepHandler disposeStepHandler,
+                            FailedInvoiceBuilder<I, T> builder) {
         Objects.requireNonNull(fileRetrievalStepHandler, "FileRetrievalStepHandler must be provided");
         Objects.requireNonNull(invoiceParserStepHandler, "InvoiceParserStepHandler must be provided");
         Objects.requireNonNull(parseResultValidators, "ParseResultValidators must be provided");
@@ -114,6 +118,7 @@ public class InvoiceProcessor<I, T> {
         this.parseRectificationStepHandler = parseRectificationStepHandler;
         this.parseSaveStepHandler = parseSaveStepHandler;
         this.disposeStepHandler = disposeStepHandler;
+        this.builder = builder;
     }
 
     /**
@@ -145,6 +150,9 @@ public class InvoiceProcessor<I, T> {
                     }
                 }
             } catch (Exception e) {
+                if (parsedInvoice == null && builder != null) {
+                    parsedInvoice = builder.buildForError(input);
+                }
                 parseSaveStepHandler.saveAndNotifyFailure(rawInvoice, parsedInvoice);
                 return;
             }

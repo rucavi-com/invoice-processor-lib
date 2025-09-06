@@ -45,6 +45,9 @@ public class InvoiceProcessorTests {
     @Mock
     private ParseSaveStepHandler<StringWrapper> saver;
 
+    @Mock
+    private FailedInvoiceBuilder<String, StringWrapper> builder;
+
     private InvoiceProcessor<String, StringWrapper> processor;
 
     @BeforeEach
@@ -58,7 +61,8 @@ public class InvoiceProcessorTests {
                 loader,
                 rectifier,
                 saver,
-                disposer);
+                disposer,
+                null);
     }
 
     @Test
@@ -72,7 +76,8 @@ public class InvoiceProcessorTests {
                 loader,
                 rectifier,
                 saver,
-                disposer);
+                disposer,
+                null);
 
         assertThrows(IllegalArgumentException.class, fail);
     }
@@ -89,7 +94,8 @@ public class InvoiceProcessorTests {
                 loader,
                 rectifier,
                 saver,
-                disposer);
+                disposer,
+                null);
 
         assertThrows(IllegalArgumentException.class, fail);
     }
@@ -136,6 +142,36 @@ public class InvoiceProcessorTests {
         verify(disposer).dispose(List.of(file));
         verifyNoInteractions(validator, loader, rectifier);
         verifyNoMoreInteractions(filter, retriever, parser, saver, disposer);
+    }
+
+    @Test
+    void whenParserFailsAndBuilderIsNotNull_SaveAndNotifyFailureWithBuiltInvoice() {
+        // Arrange
+        var invoiceProcessor = new InvoiceProcessor<String, StringWrapper>(
+                filter,
+                retriever,
+                parser,
+                new ParseResultValidator[]{validator},
+                loader,
+                rectifier,
+                saver,
+                disposer,
+                builder);
+        when(filter.filter("input")).thenReturn(true);
+        var file = mock(File.class);
+        when(retriever.retrieveFile("input")).thenReturn(List.of(file));
+        when(parser.parseInvoice(file)).thenThrow(new RuntimeException("boom"));
+        when(builder.buildForError(anyString())).thenAnswer(inv -> new StringWrapper(inv.getArgument(0, String.class)));
+
+        // Act
+        assertDoesNotThrow(() -> invoiceProcessor.process("input"));
+
+        // Assert
+        verify(builder).buildForError("input");
+        verify(saver).saveAndNotifyFailure(file, new StringWrapper("input"));
+        verify(disposer).dispose(List.of(file));
+        verifyNoInteractions(validator, loader, rectifier);
+        verifyNoMoreInteractions(filter, retriever, parser, saver, disposer, builder);
     }
 
     @Test
@@ -345,7 +381,8 @@ public class InvoiceProcessorTests {
                 loader,
                 rectifier,
                 saver,
-                disposer));
+                disposer,
+                null));
     }
 
     @Test
@@ -360,7 +397,8 @@ public class InvoiceProcessorTests {
                 loader,
                 rectifier,
                 saver,
-                disposer);
+                disposer,
+                null);
         doThrow(new RuntimeException("boom")).when(retriever).retrieveFile("input");
 
         // Act
